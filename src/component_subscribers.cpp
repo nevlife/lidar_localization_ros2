@@ -68,9 +68,13 @@ void PCLLocalization::initializePubSub()
     },
     twist_subscription_options);
 
+  rclcpp::SubscriptionOptions cloud_subscription_options;
+  cloud_subscription_options.qos_overriding_options =
+    rclcpp::QosOverridingOptions::with_default_policies();
   cloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
     "cloud", rclcpp::SensorDataQoS().keep_last(cloud_queue_depth_),
-    std::bind(&PCLLocalization::cloudReceived, this, std::placeholders::_1));
+    std::bind(&PCLLocalization::cloudReceived, this, std::placeholders::_1),
+    cloud_subscription_options);
 
   rclcpp::SubscriptionOptions imu_subscription_options;
   if (use_imu_preintegration_ && !use_imu_) {
