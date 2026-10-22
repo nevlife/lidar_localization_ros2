@@ -36,6 +36,7 @@ PCLLocalization::PCLLocalization(const rclcpp::NodeOptions & options)
   declare_parameter("scan_period", 0.1);
   declare_parameter("scan_time_range_max_duration_ratio", 2.0);
   declare_parameter("cloud_queue_depth", 1);
+  declare_parameter("cloud_transport", "dds");
   declare_parameter("imu_queue_depth", 2000);
   declare_parameter("min_scan_interval_sec", 0.0);
   declare_parameter("use_pcd_map", false);
@@ -360,6 +361,12 @@ CallbackReturn PCLLocalization::on_error(const rclcpp_lifecycle::State & state)
 void PCLLocalization::releaseRuntimeResources(bool leak_target_clouds_for_shutdown)
 {
   shutting_down_.store(true, std::memory_order_release);
+  // Before the state lock: a cloud callback on the flux thread may be waiting for it.
+  if (flux_cloud_executor_) {
+    flux_cloud_executor_->cancel();
+    flux_cloud_thread_.join();
+    flux_cloud_executor_.reset();
+  }
   auto state_lock = callback_state_coordinator_.lockState();
 
 #ifdef LIDAR_LOCALIZATION_HAVE_NAV2_BOND
@@ -373,6 +380,7 @@ void PCLLocalization::releaseRuntimeResources(bool leak_target_clouds_for_shutdo
   odom_sub_.reset();
   twist_sub_.reset();
   cloud_sub_.reset();
+  flux_cloud_sub_.reset();
   imu_sub_.reset();
   initial_pose_callback_group_.reset();
   pose_publish_callback_group_.reset();

@@ -20,6 +20,8 @@
 #include <vector>
 
 #include <Eigen/Geometry>
+#include <flux/executor.hpp>
+#include <flux/subscription.hpp>
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/registration/registration.h>
@@ -229,6 +231,10 @@ public:
     twist_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::ConstSharedPtr
     cloud_sub_;
+  // cloud_transport flux: a flux executor serves cloud on its own thread, as a callback group would.
+  std::unique_ptr<flux::Subscription> flux_cloud_sub_;
+  std::unique_ptr<flux::Executor> flux_cloud_executor_;
+  std::thread flux_cloud_thread_;
   rclcpp::Subscription<sensor_msgs::msg::Imu>::ConstSharedPtr
     imu_sub_;
   rclcpp::CallbackGroup::SharedPtr imu_callback_group_;
@@ -366,6 +372,7 @@ public:
   double scan_period_;
   double scan_time_range_max_duration_ratio_{2.0};
   int cloud_queue_depth_{1};
+  std::string cloud_transport_{"dds"};
   int imu_queue_depth_{2000};
   double min_scan_interval_sec_{0.0};
   rclcpp::Time last_cloud_process_time_{0, 0, RCL_ROS_TIME};

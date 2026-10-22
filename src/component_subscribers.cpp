@@ -1,4 +1,5 @@
 #include "component_internal.hpp"
+#include <sensor_msgs/flux/point_cloud2_ros.hpp>
 #include <pcl/registration/gicp.h>
 #include <pcl/registration/ndt.h>
 void PCLLocalization::initializePubSub()
@@ -68,13 +69,28 @@ void PCLLocalization::initializePubSub()
     },
     twist_subscription_options);
 
-  rclcpp::SubscriptionOptions cloud_subscription_options;
-  cloud_subscription_options.qos_overriding_options =
-    rclcpp::QosOverridingOptions::with_default_policies();
-  cloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-    "cloud", rclcpp::SensorDataQoS().keep_last(cloud_queue_depth_),
-    std::bind(&PCLLocalization::cloudReceived, this, std::placeholders::_1),
-    cloud_subscription_options);
+  if (cloud_transport_ == "flux") {
+    using FluxCloud = sensor_msgs::flux_msg::PointCloud2;
+    flux_cloud_sub_ = std::make_unique<flux::Subscription>(
+      *this, "cloud", FluxCloud::kFingerprint,
+      flux::QoS(static_cast<std::uint32_t>(cloud_queue_depth_)),
+      [this](const flux::FrameView & frame) {
+        cloudReceived(
+          std::make_shared<const sensor_msgs::msg::PointCloud2>(
+            sensor_msgs::flux_msg::frame_to_msg(FluxCloud::View(frame))));
+      });
+    flux_cloud_executor_ = std::make_unique<flux::Executor>();
+    flux_cloud_executor_->add(*flux_cloud_sub_);
+    flux_cloud_thread_ = std::thread([this] {flux_cloud_executor_->spin();});
+  } else {
+    rclcpp::SubscriptionOptions cloud_subscription_options;
+    cloud_subscription_options.qos_overriding_options =
+      rclcpp::QosOverridingOptions::with_default_policies();
+    cloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
+      "cloud", rclcpp::SensorDataQoS().keep_last(cloud_queue_depth_),
+      std::bind(&PCLLocalization::cloudReceived, this, std::placeholders::_1),
+      cloud_subscription_options);
+  }
 
   rclcpp::SubscriptionOptions imu_subscription_options;
   if (use_imu_preintegration_ && !use_imu_) {

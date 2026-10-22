@@ -49,6 +49,8 @@
   <test_depend>launch</test_depend>
 
   <depend>ndt_omp_ros2</depend>
+  <depend>flux_cpp</depend>
+  <depend>flux_std_adapters</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

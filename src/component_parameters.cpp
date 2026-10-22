@@ -197,6 +197,12 @@ void PCLLocalization::initializeParameters()
     RCLCPP_WARN(
       get_logger(), "cloud_queue_depth must be positive; using %d", cloud_queue_depth_);
   }
+  get_parameter("cloud_transport", cloud_transport_);
+  if (cloud_transport_ != "dds" && cloud_transport_ != "flux") {
+    RCLCPP_WARN(
+      get_logger(), "Unsupported cloud_transport '%s'; using dds", cloud_transport_.c_str());
+    cloud_transport_ = "dds";
+  }
   int requested_imu_queue_depth = imu_queue_depth_;
   get_parameter("imu_queue_depth", requested_imu_queue_depth);
   const auto imu_queue_depth =
@@ -522,6 +528,7 @@ void PCLLocalization::initializeParameters()
     get_logger(), "scan_time_range_max_duration_ratio: %lf",
     scan_time_range_max_duration_ratio_);
   RCLCPP_INFO(get_logger(),"cloud_queue_depth: %d", cloud_queue_depth_);
+  RCLCPP_INFO(get_logger(),"cloud_transport: %s", cloud_transport_.c_str());
   RCLCPP_INFO(get_logger(),"imu_queue_depth: %d", imu_queue_depth_);
   RCLCPP_INFO(get_logger(),"min_scan_interval_sec: %lf", min_scan_interval_sec_);
   RCLCPP_INFO(get_logger(),"use_pcd_map: %d", use_pcd_map_);

@@ -37,6 +37,8 @@ find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(ndt_omp_ros2 REQUIRED)
+find_package(flux_cpp REQUIRED)
+find_package(flux_std_adapters REQUIRED)
 find_package(small_gicp QUIET CONFIG)
 find_package(nav2_util QUIET)
 find_package(bondcpp QUIET)
@@ -64,7 +66,8 @@ add_library(lidar_localization_component SHARED
   src/component_reinit_recovery.cpp
   src/component_diagnostics.cpp
 )
-target_link_libraries(lidar_localization_component Eigen3::Eigen)
+target_link_libraries(lidar_localization_component Eigen3::Eigen flux_cpp::flux_cpp)
+target_include_directories(lidar_localization_component PRIVATE ${flux_std_adapters_INCLUDE_DIRS})
 
 ament_target_dependencies(lidar_localization_component
   rclcpp
